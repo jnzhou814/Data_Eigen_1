@@ -1,0 +1,49 @@
+import requests
+import random
+import pandas as pd
+from bs4 import BeautifulSoup
+
+
+def get_content(url):
+    header = {
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.131 Safari/537.36'}
+    response = requests.get(url, headers=header, timeout=10)
+    soup = BeautifulSoup(response.text, 'html.parser')
+    return soup
+
+
+def analysis_page(soup):
+    tousu_columns = pd.DataFrame(columns=[
+        'id', 'brand', 'car_model', 'type', 'desc', 'problem', 'datetime', 'status'])
+    page_data = soup.find('div', class_="tslb_b")
+    tr_list = page_data.find_all('tr')
+
+    for tr in tr_list:
+        temp = {}
+        td_list = tr.find_all("td")
+        if len(td_list) > 0:
+            temp['id'], temp['brand'], temp['car_model'], temp['type'], temp['desc'], temp['problem'], temp['datetime'], temp['status'] = td_list[
+                0].text, td_list[1].text, td_list[2].text, td_list[3].text, td_list[4].text, td_list[5].text, td_list[6].text, td_list[7].text
+            tousu_columns = tousu_columns.append(temp, ignore_index=True)
+    return tousu_columns
+
+
+Result = pd.DataFrame(columns=[
+                      'id', 'brand', 'car_model', 'type', 'desc', 'problem', 'datetime', 'status'])
+
+
+page_number = 10
+
+
+def main(page_number):
+    for number in range(page_number):
+        base_url = 'http://www.12365auto.com/zlts/0-0-0-0-0-0_0-0-'
+        url = base_url+str(number+1)+'.shtml'
+        Soup = get_content(url)
+        Tousu_Page = analysis_page(Soup)
+        Result = Result.append(Tousu_Page, ignore_index=True)
+    Result.to_csv('result.csv', index=False)
+
+
+if __name__ == "__main__":
+    main(page_number)
